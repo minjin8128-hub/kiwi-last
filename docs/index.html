@@ -63,7 +63,10 @@
 async function loadStatus() {
   try {
     // cache: "no-store" 로 브라우저 캐시를 덜 타게 함 [web:190]
-    const res = await fetch("../data/status.json", { cache: "no-store" });
+    const base = window.location.pathname.split('/').slice(0, 3).join('/'); 
+// 결과 예: /사용자명.github.io/레포명  (Pages 기본 구조)
+const res = await fetch(`${base}/data/status.json`, { cache: "no-store" });
+
     const s = await res.json();
 
     document.getElementById("updated").textContent = s.updated_utc ?? "-";
