@@ -1,6 +1,6 @@
 {
-  "code": 40010,
-  "msg": "Invalid application Key",
-  "time": "1771423152",
+  "code": 40000,
+  "msg": "Invalid MAC",
+  "time": "1771423571",
   "data": []
 }
