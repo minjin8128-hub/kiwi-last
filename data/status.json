@@ -1,0 +1,10 @@
+{
+  "updated_utc": "2026-02-18T13:46:53.199620+00:00",
+  "ecowitt_raw_top_keys": [
+    "code",
+    "msg",
+    "time",
+    "data"
+  ],
+  "note": "연결 테스트 OK면 다음 단계에서 온도/토양수분 필드를 뽑아 daily/status 계산을 붙임"
+}
