@@ -1,3 +1,4 @@
+# collector/collect.py
 import os, json, datetime
 import requests
 
@@ -15,13 +16,17 @@ def main():
     r.raise_for_status()
     raw = r.json()
 
+    # 1) 원본 JSON 저장(필드 확인용)
+    os.makedirs("data", exist_ok=True)
+    with open("data/raw_last.json", "w", encoding="utf-8") as f:
+        json.dump(raw, f, ensure_ascii=False, indent=2)
+
+    # 2) 상태 요약 JSON 저장(대시보드용)
     status = {
         "updated_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "ecowitt_raw_top_keys": list(raw.keys()),
-        "note": "연결 테스트 OK면 다음 단계에서 온도/토양수분 필드를 뽑아 daily/status 계산을 붙임"
+        "note": "raw_last.json에 원본을 저장했습니다. 여기서 온도/지온/토양수분 필드명을 확정한 뒤 daily.csv/GDD/칠링 계산을 붙입니다."
     }
-
-    os.makedirs("data", exist_ok=True)
     with open("data/status.json", "w", encoding="utf-8") as f:
         json.dump(status, f, ensure_ascii=False, indent=2)
 
