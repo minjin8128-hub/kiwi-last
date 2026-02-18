@@ -1,26 +1,24 @@
 import os, json, datetime, csv
 import requests
 
-# ===== 사용자가 나중에 조정할 값(임계치/기준온도) =====
-TBASE_C = float(os.getenv("TBASE_C", "5"))          # GDD 기준온도(섭씨). 예: 5
-H_BUD = float(os.getenv("H_BUD", "80"))             # 발아10% 임계 누적GDD(예시값, 나중에 보정)
-H_BLOOM = float(os.getenv("H_BLOOM", "180"))        # 만개50% 임계 누적GDD(예시값, 나중에 보정)
-GDD_START_MMDD = "02-15"                            # 적산 시작일(월-일 고정)
+# ===== 조정값(나중에 바꾸면 됨) =====
+TBASE_C = float(os.getenv("TBASE_C", "5"))      # GDD 기준온도(섭씨)
+H_BUD = float(os.getenv("H_BUD", "80"))         # 발아10% 임계 누적GDD(임시값)
+H_BLOOM = float(os.getenv("H_BLOOM", "180"))    # 만개50% 임계 누적GDD(임시값)
+GDD_START_MMDD = "02-15"                        # 적산 시작일(월-일)
+
 CHILL_SEASON_START_MMDD = "11-01"
 CHILL_SEASON_END_MMDD = "02-14"
 CHILL_TMIN = 2.0
 CHILL_TMAX = 10.0
-CHILL_70 = float(os.getenv("CHILL_70", "70"))       # 목표치의 70% 날짜 표시(아래 CHILL_TARGET로 환산)
-CHILL_90 = float(os.getenv("CHILL_90", "90"))
-CHILL_TARGET_DAYS = float(os.getenv("CHILL_TARGET_DAYS", "100"))  # 시즌 목표 ChillDay (예: 100일=100점)
+CHILL_TARGET_DAYS = float(os.getenv("CHILL_TARGET_DAYS", "100"))  # 목표 ChillDay(임시값)
+CHILL_70 = 70.0
+CHILL_90 = 90.0
 
-# ===== 유틸 =====
 def f_to_c(f):
-    return (float(f) - 32.0) * 5.0 / 9.0  # C = (F-32)*5/9 [web 근거는 답변에서]
+    return (float(f) - 32.0) * 5.0 / 9.0
 
 def parse_float(v):
-    if v is None:
-        return None
     try:
         return float(v)
     except:
@@ -41,16 +39,13 @@ def mmdd(date_obj):
     return date_obj.strftime("%m-%d")
 
 def in_chill_season(date_obj):
-    # 시즌: 11/1 ~ 12/31 AND 1/1 ~ 2/14 (연도 걸침)
-    m = date_obj.month
-    d = date_obj.day
-    mmdd_s = f"{m:02d}-{d:02d}"
-    return (mmdd_s >= CHILL_SEASON_START_MMDD) or (mmdd_s <= CHILL_SEASON_END_MMDD)
+    # 11/1~12/31 또는 1/1~2/14
+    s = mmdd(date_obj)
+    return (s >= CHILL_SEASON_START_MMDD) or (s <= CHILL_SEASON_END_MMDD)
 
 def is_gdd_season(date_obj):
     return mmdd(date_obj) >= GDD_START_MMDD
 
-# ===== Ecowitt 호출 =====
 def fetch_realtime():
     api_key = os.environ["ECOWITT_API_KEY"]
     app_key = os.environ["ECOWITT_APPLICATION_KEY"]
@@ -71,17 +66,20 @@ def main():
     with open("data/raw_last.json", "w", encoding="utf-8") as f:
         json.dump(raw, f, ensure_ascii=False, indent=2)
 
-    # ===== 여기서 “외기”가 없어서 임시로 ch1 온도를 외기로 사용 =====
-    # 너가 보내준 JSON에는 outdoor가 안 보이고, temp_and_humidity_ch1/2/3가 있어요.
-    # 우선: 외기 = temp_and_humidity_ch1.temperature.value (ºF)
-    # 실내 = indoor.temperature.value (ºF)
-    indoor_f = get_path(raw, ["data", "indoor", "temperature", "value"])
-    outdoor_f = get_path(raw, ["data", "temp_and_humidity_ch1", "temperature", "value"])
+    # ===== 센서 매핑(농장 기준) =====
+    # Ecowitt JSON 구조 참고: data.indoor, data.temp_and_humidity_ch1 등 [web:2]
+    # indoor = 외부(실외)
+    outdoor_f = get_path(raw, ["data", "indoor", "temperature", "value"])
+    # ch1 = 2동
+    dong2_f = get_path(raw, ["data", "temp_and_humidity_ch1", "temperature", "value"])
+    # ch2 = 3동
+    dong3_f = get_path(raw, ["data", "temp_and_humidity_ch2", "temperature", "value"])
 
-    indoor_c = f_to_c(indoor_f) if indoor_f is not None else None
     outdoor_c = f_to_c(outdoor_f) if outdoor_f is not None else None
+    dong2_c = f_to_c(dong2_f) if dong2_f is not None else None
+    dong3_c = f_to_c(dong3_f) if dong3_f is not None else None
 
-    # 토양수분 채널(soil_ch1~6) 모으기
+    # 토양수분 채널(soil_ch1~6)
     soils = {}
     for ch in range(1, 7):
         key = f"soil_ch{ch}"
@@ -89,8 +87,8 @@ def main():
         if v is not None:
             soils[key] = parse_float(v)
 
-    # ===== daily.csv 업데이트(“오늘” 행만 관리: tmin/tmax를 누적) =====
-    today = datetime.datetime.now().date()  # Actions 러너 시간(UTC일 수 있음)
+    # ===== daily.csv (외부 기준으로 tmin/tmax 누적) =====
+    today = datetime.datetime.now().date()  # 러너 시간대 영향 있음(나중에 KST로 고정 가능)
     daily_path = "data/daily.csv"
     fieldnames = ["date", "tmin_c", "tmax_c", "tmean_c", "gdd", "gdd_cum_from_0215", "chillday", "chill_cum"]
 
@@ -101,7 +99,6 @@ def main():
             for r in reader:
                 rows[r["date"]] = r
 
-    # 오늘 온도값이 없으면 daily 계산 못함
     if outdoor_c is not None:
         key = ymd(today)
         if key not in rows:
@@ -123,10 +120,11 @@ def main():
             rows[key]["tmin_c"] = str(tmin)
             rows[key]["tmax_c"] = str(tmax)
 
-    # 날짜순으로 계산(누적 GDD, 누적 chill)
+    # 날짜순 계산(누적 GDD/칠링)
     all_dates = sorted(rows.keys())
     gdd_cum = 0.0
     chill_cum = 0.0
+
     for dstr in all_dates:
         d = datetime.datetime.strptime(dstr, "%Y-%m-%d").date()
         tmin = parse_float(rows[dstr].get("tmin_c"))
@@ -137,14 +135,14 @@ def main():
         tmean = (tmin + tmax) / 2.0
         rows[dstr]["tmean_c"] = f"{tmean:.2f}"
 
-        # GDD (2/15부터 누적)
+        # GDD: max(0, Tmean - Tbase) [web:60]
         gdd = max(0.0, tmean - TBASE_C)
         rows[dstr]["gdd"] = f"{gdd:.2f}"
         if is_gdd_season(d):
             gdd_cum += gdd
         rows[dstr]["gdd_cum_from_0215"] = f"{gdd_cum:.2f}"
 
-        # ChillDay(겨울 시즌에만): 일평균 2~10C면 1점
+        # ChillDay: 일평균 2~10C면 1점
         chillday = 0.0
         if in_chill_season(d) and (CHILL_TMIN <= tmean <= CHILL_TMAX):
             chillday = 1.0
@@ -152,14 +150,14 @@ def main():
         rows[dstr]["chillday"] = f"{chillday:.0f}"
         rows[dstr]["chill_cum"] = f"{chill_cum:.0f}"
 
-    # daily.csv 저장(전체 다시 씀)
+    # daily.csv 저장
     with open(daily_path, "w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fieldnames)
         w.writeheader()
         for dstr in all_dates:
             w.writerow({k: rows[dstr].get(k, "") for k in fieldnames})
 
-    # 예측일 계산(임계 누적GDD 도달 첫날)
+    # 예측일: 임계 누적GDD 도달 첫 날짜
     bud_date = None
     bloom_date = None
     for dstr in all_dates:
@@ -171,15 +169,15 @@ def main():
         if bloom_date is None and val >= H_BLOOM:
             bloom_date = dstr
 
-    # 칠링 상태(목표 대비 %)
+    # 칠링 % 및 70/90 날짜
     chill_pct = None
     if CHILL_TARGET_DAYS > 0:
         chill_pct = min(100.0, (chill_cum / CHILL_TARGET_DAYS) * 100.0)
 
-    chill70_date = None
-    chill90_date = None
     target70 = CHILL_TARGET_DAYS * (CHILL_70 / 100.0)
     target90 = CHILL_TARGET_DAYS * (CHILL_90 / 100.0)
+    chill70_date = None
+    chill90_date = None
     for dstr in all_dates:
         v = parse_float(rows[dstr].get("chill_cum"))
         if v is None:
@@ -189,33 +187,33 @@ def main():
         if chill90_date is None and v >= target90:
             chill90_date = dstr
 
-    # status.json 저장(대시보드용)
     status = {
         "updated_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "now": {
-            "indoor_c": None if indoor_c is None else round(indoor_c, 2),
-            "outdoor_c": None if outdoor_c is None else round(outdoor_c, 2),
+            "외부_c": None if outdoor_c is None else round(outdoor_c, 2),
+            "2동_c": None if dong2_c is None else round(dong2_c, 2),
+            "3동_c": None if dong3_c is None else round(dong3_c, 2),
             "soil": soils,
         },
         "gdd": {
-            "tbase_c": TBASE_C,
-            "start_mmdd": GDD_START_MMDD,
-            "cum_from_0215": None if not all_dates else rows[all_dates[-1]].get("gdd_cum_from_0215"),
-            "H_BUD": H_BUD,
-            "H_BLOOM": H_BLOOM,
-            "pred_bud10_date": bud_date,
-            "pred_bloom50_date": bloom_date,
+            "기준온도_tbase_c": TBASE_C,
+            "시작일_mmdd": GDD_START_MMDD,
+            "누적_gdd_0215": None if not all_dates else rows[all_dates[-1]].get("gdd_cum_from_0215"),
+            "발아10_H_BUD": H_BUD,
+            "만개50_H_BLOOM": H_BLOOM,
+            "발아10_예측일": bud_date,
+            "만개50_예측일": bloom_date,
         },
         "chill": {
-            "season": f"{CHILL_SEASON_START_MMDD}~{CHILL_SEASON_END_MMDD}",
-            "rule": "ChillDay=1 if daily mean 2~10C else 0",
-            "target_days": CHILL_TARGET_DAYS,
-            "cum": int(chill_cum),
-            "pct": None if chill_pct is None else round(chill_pct, 1),
-            "date_70": chill70_date,
-            "date_90": chill90_date,
+            "시즌": f"{CHILL_SEASON_START_MMDD}~{CHILL_SEASON_END_MMDD}",
+            "룰": "일평균 2~10C면 1점",
+            "목표점수": CHILL_TARGET_DAYS,
+            "누적": int(chill_cum),
+            "진행률_pct": None if chill_pct is None else round(chill_pct, 1),
+            "후반70_날짜": chill70_date,
+            "거의끝90_날짜": chill90_date,
         },
-        "note": "현재는 실시간을 '오늘 tmin/tmax 누적'으로 일자료를 만듭니다. 다음 단계에서 history API로 누락일 자동 보정 붙일 수 있어요."
+        "note": "현재는 실시간으로 '오늘 tmin/tmax'를 누적하는 최소버전입니다. 다음 단계에서 history API로 누락일 자동 보정 붙이면 정확도가 올라갑니다."
     }
 
     with open("data/status.json", "w", encoding="utf-8") as f:
