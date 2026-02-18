@@ -1,14 +1,11 @@
 {
   "updated_utc": "2026-02-18T14:21:24.758958+00:00",
   "now": {
-    "indoor_c": 4.5,
-    "outdoor_c": 4.39,
-    "soil": {
-      "soil_ch1": 44.0,
-      "soil_ch2": 44.0,
-      "soil_ch3": 0.0
-    }
-  },
+    "외부_c": None if outdoor_c is None else round(outdoor_c, 2),
+    "2동_c": None if dong2_c is None else round(dong2_c, 2),
+    "3동_c": None if dong3_c is None else round(dong3_c, 2),
+    "soil": soils,
+},
   "gdd": {
     "tbase_c": 5.0,
     "start_mmdd": "02-15",
