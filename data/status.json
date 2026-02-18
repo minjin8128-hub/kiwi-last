@@ -1,10 +1,10 @@
 {
-  "updated_utc": "2026-02-18T13:53:02.668761+00:00",
+  "updated_utc": "2026-02-18T13:55:43.583134+00:00",
   "ecowitt_raw_top_keys": [
     "code",
     "msg",
     "time",
     "data"
   ],
-  "note": "raw_last.json에 원본을 저장했습니다. 여기서 온도/지온/토양수분 필드명을 확정한 뒤 daily.csv/GDD/칠링 계산을 붙입니다."
+  "note": "raw_last.json 생성 확인용"
 }
