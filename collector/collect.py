@@ -45,12 +45,23 @@ def _read_temp(data, direct_key, nested_key):
 
 def _extract_device_data(payload):
     """Ecowitt 응답 변형 대응"""
-    data = payload.get('data', {}) if isinstance(payload, dict) else {}
+    if not isinstance(payload, dict):
+        raise ValueError('Ecowitt 응답이 JSON 객체가 아님')
 
-    if isinstance(data, dict) and isinstance(data.get('device'), list) and data['device']:
-        first = data['device'][0]
+    code = payload.get('code')
+    if code not in (None, 0, '0'):
+        raise ValueError(f"Ecowitt API 오류(code={code}): {payload.get('msg', 'unknown')}")
+
+    data = payload.get('data', {})
+
+    if isinstance(data, dict) and 'device' in data:
+        devices = data.get('device')
+        if not isinstance(devices, list) or not devices:
+            raise ValueError('Ecowitt 응답 device 목록이 비어있음')
+        first = devices[0]
         if isinstance(first, dict) and isinstance(first.get('data'), dict):
             return first['data']
+        raise ValueError('Ecowitt 응답 device[0].data 형식이 잘못됨')
 
     if isinstance(data, dict):
         return data
