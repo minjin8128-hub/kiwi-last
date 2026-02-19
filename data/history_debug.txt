@@ -1,0 +1,4 @@
+history_test.py started
+url=https://api.ecowitt.net/api/v3/device/history?application_key=A173F6BFBBBD80ABB1F3E85E63C694E3&api_key=963717d1-764c-47f8-aecf-ffddebddba03&mac=30%3A83%3A98%3AA7%3A26%3A4F&start_date=2026-02-17+11%3A36%3A28&end_date=2026-02-19+11%3A36%3A28&call_back=all
+status=200
+{"code":40016,"msg":"all is invalid","time":"1771468589","data":[]}
