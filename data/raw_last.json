@@ -1,127 +1,127 @@
 {
   "code": 0,
   "msg": "success",
-  "time": "1771468045",
+  "time": "1771468204",
   "data": {
     "indoor": {
       "temperature": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "ºF",
-        "value": "48.6"
+        "value": "50.4"
       },
       "humidity": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "%",
-        "value": "54"
+        "value": "52"
       },
       "dew_point": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "ºF",
-        "value": "32.7"
+        "value": "33.5"
       },
       "feels_like": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "ºF",
-        "value": "48.6"
+        "value": "50.4"
       },
       "app_tempin": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "ºF",
-        "value": "45.1"
+        "value": "47.0"
       }
     },
     "pressure": {
       "relative": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "inHg",
-        "value": "29.92"
+        "value": "29.93"
       },
       "absolute": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "inHg",
-        "value": "29.92"
+        "value": "29.93"
       }
     },
     "temp_and_humidity_ch1": {
       "temperature": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "ºF",
-        "value": "49.5"
+        "value": "49.6"
       },
       "humidity": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "%",
         "value": "53"
       }
     },
     "temp_and_humidity_ch2": {
       "temperature": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "ºF",
         "value": "45.1"
       }
     },
     "temp_and_humidity_ch3": {
       "temperature": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "ºF",
-        "value": "53.2"
+        "value": "53.4"
       },
       "humidity": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "%",
         "value": "47"
       }
     },
     "soil_ch1": {
       "soilmoisture": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "%",
         "value": "44"
       }
     },
     "soil_ch2": {
       "soilmoisture": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "%",
         "value": "41"
       }
     },
     "soil_ch3": {
       "soilmoisture": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "%",
         "value": "0"
       }
     },
     "battery": {
       "temp_humidity_sensor_ch1": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "",
         "value": "0"
       },
       "temp_humidity_sensor_ch2": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "",
         "value": "0"
       },
       "temp_humidity_sensor_ch3": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "",
         "value": "0"
       },
       "soilmoisture_sensor_ch1": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "V",
         "value": "1.4"
       },
       "soilmoisture_sensor_ch2": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "V",
         "value": "1.4"
       },
       "soilmoisture_sensor_ch3": {
-        "time": "1771468019",
+        "time": "1771468202",
         "unit": "V",
         "value": "1.5"
       }
