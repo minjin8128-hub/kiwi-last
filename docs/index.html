@@ -54,6 +54,14 @@
     <div class="k" id="chill_dates">후반/거의끝 날짜: -</div>
   </div>
 
+
+  <div class="card">
+    <div class="k">관수 추천(zone_main)</div>
+    <div class="v" id="irr_min">-</div>
+    <div class="k" id="irr_meta">-</div>
+    <div class="k" id="irr_reason">-</div>
+  </div>
+
   <div class="card">
     <div class="k">문제 생기면(원본 일부)</div>
     <pre id="rawmini"></pre>
@@ -68,17 +76,17 @@ async function loadStatus() {
     const s = await res.json();
 
     // 1) 업데이트 시간
-    document.getElementById("updated").textContent = s.updated_utc ?? "-";
+    document.getElementById("updated").textContent = s.updated_utc ?? s.timestamp ?? "-";
 
     // 2) 현재 온도
     const now = s.now ?? {};
-    document.getElementById("t_out").textContent = now["외부_c"] ?? "-";
+    document.getElementById("t_out").textContent = now["외부_c"] ?? now["외부온도"] ?? "-";
     document.getElementById("t_2").textContent  = now["2동_c"] ?? "-";
     document.getElementById("t_3").textContent  = now["3동_c"] ?? "-";
 
     // 3) GDD
     const g = s.gdd ?? {};
-    const gddVal = g.cum_from_0215 ?? g["누적_gdd_0215"] ?? "-";
+    const gddVal = g.cum_from_0215 ?? g.total ?? g["누적_gdd_0215"] ?? "-";
     document.getElementById("gdd").textContent = gddVal;
 
     const bud   = g.pred_bud10_date   ?? g["발아10_예측일"]  ?? "-";
@@ -88,8 +96,8 @@ async function loadStatus() {
 
     // 4) 칠링
     const c = s.chill ?? {};
-    const pct = c.pct ?? c["진행률_pct"] ?? "-";
-    const cum = c.cum ?? c["누적"] ?? "-";
+    const pct = c.pct ?? c["진행률_pct"] ?? c.progress ?? "-";
+    const cum = c.cum ?? c.total_days ?? c["누적"] ?? "-";
     document.getElementById("chill").textContent = `${cum}점 (${pct}%)`;
 
     const d70 = c.date_70 ?? c["후반70_날짜"] ?? "-";
@@ -97,7 +105,17 @@ async function loadStatus() {
     document.getElementById("chill_dates").textContent =
       `후반(70%): ${d70} / 거의끝(90%): ${d90}`;
 
-    // 5) 디버그용으로 핵심만 출력
+
+    // 5) 관수 추천
+    const irr = s.irrigation ?? {};
+    const zone = (irr.zones ?? [])[0] ?? {};
+    const rec = zone.recommendation ?? {};
+    const resp = zone.response ?? {};
+    document.getElementById("irr_min").textContent = `${rec.needed_minutes ?? '-'}분 (${rec.needed_mm ?? '-'} mm)`;
+    document.getElementById("irr_meta").textContent = `theta_rel ${zone.theta_rel ?? '-'} / target ${zone.target_theta_rel ?? '-'} / k ${resp.k_theta_rel_per_mm ?? '-'}`;
+    document.getElementById("irr_reason").textContent = `사유: ${(rec.reasons ?? []).join(', ') || '-'}`;
+
+    // 6) 디버그용으로 핵심만 출력
     document.getElementById("rawmini").textContent = JSON.stringify(
       { now: s.now, gdd: s.gdd, chill: s.chill },
       null,

@@ -16,13 +16,13 @@
 </head>
 <body>
     <h1>🥝 제주 키위 모니터링</h1>
-    
+
     <div class="card" id="now">
         <div>실시간 온도</div>
         <div class="temp" id="temp-out">-</div>
         <div>외부 / <span id="temp-2dong">-</span> (2동) / <span id="temp-3dong">-</span> (3동)</div>
     </div>
-    
+
     <div class="card">
         <div>GDD 진행도 <span class="progress" id="gdd-progress">-</span></div>
         <div class="gdd">
@@ -31,52 +31,161 @@
         </div>
         <small id="gdd-basis">-</small>
     </div>
-    
+
     <div class="card">
         <div>예상 개화일 <span class="progress" id="chill-progress">-</span></div>
         <div class="pred">발아10%: <span id="bud-date">-</span></div>
         <div class="pred">만개50%: <span id="bloom-date">-</span></div>
     </div>
-    
+
     <div class="card">
         <div>칠링 누적 <span id="chill-total">-</span> / 100일</div>
     </div>
-    
+
+    <div class="card">
+        <div>관수 처방 (zone_main)</div>
+        <div>대표 토양수분: <strong id="irr-theta-pct">-</strong>% / 정규화 수분(theta_rel): <strong id="irr-theta-rel">-</strong></div>
+        <div>목표 theta_rel: <span id="irr-target">-</span>, 결손: <span id="irr-deficit">-</span></div>
+        <div>권장 관수: <strong id="irr-needed-min">-</strong>분 (<span id="irr-needed-mm">-</span> mm)</div>
+        <div>사이클 추천: <span id="irr-cycle">-</span></div>
+        <small id="irr-reasons">-</small>
+        <hr>
+        <div>관수 시뮬레이션</div>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
+            <label>강우강도(mm/h) <input id="irr-mmph" type="number" min="0.1" step="0.1" style="width:80px"></label>
+            <label>관수 분 <input id="irr-minutes" type="number" min="0" max="120" step="1" style="width:70px"></label>
+            <button id="irr-run">계산</button>
+        </div>
+        <small id="irr-sim-result">-</small>
+    </div>
+
     <div style="text-align:center; padding:20px 0; color:#7f8c8d;">
         최종 업데이트: <span id="timestamp">-</span><br>
         <button onclick="location.reload()">새로고침</button>
     </div>
 
     <script>
+        const toNumber = (value) => {
+            if (value === null || value === undefined || value === '') return null;
+            const n = Number(value);
+            return Number.isFinite(n) ? n : null;
+        };
+
+        const fmtTemp = (value) => {
+            const n = toNumber(value);
+            return n === null ? '-' : `${n.toFixed(1)}°C`;
+        };
+
+        const pick = (...values) => values.find(v => v !== undefined && v !== null && v !== '');
+
+        const estimateDate = (remaining, dailyGdd = 2.0) => {
+            const days = Math.max(0, Math.floor((remaining / Math.max(dailyGdd, 0.5)) * 1.2));
+            const d = new Date();
+            d.setDate(d.getDate() + days);
+            return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+        };
+
         fetch('data/status.json')
-            .then(r=>r.json())
-            .then(data => {
+            .then((r) => r.json())
+            .then((data) => {
+                const now = data.now || {};
+                const gdd = data.gdd || {};
+                const chill = data.chill || {};
+
                 // 실시간
-                document.getElementById('temp-out').textContent = data.now.외부온도?.toFixed(1) + '°C';
-                document.getElementById('temp-2dong').textContent = data.now['2동_c']?.toFixed(1) + '°C';
-                document.getElementById('temp-3dong').textContent = data.now['3동_c']?.toFixed(1) + '°C';
-                
-                // GDD
-                document.getElementById('gdd-total').textContent = data.gdd.total;
-                document.getElementById('gdd-total2').textContent = data.gdd.total;
-                document.getElementById('gdd-bud').textContent = data.gdd.target_bud;
-                document.getElementById('gdd-bloom').textContent = data.gdd.target_bloom;
-                document.getElementById('gdd-progress').textContent = data.gdd.progress;
-                document.getElementById('gdd-basis').textContent = data.gdd.basis;
-                
-                // 예상일
-                document.getElementById('bud-date').textContent = data.gdd.bud_date;
-                document.getElementById('bloom-date').textContent = data.gdd.bloom_date;
-                document.getElementById('chill-progress').textContent = data.chill.progress;
-                
+                const outside = pick(now['외부_c'], now['외부온도']);
+                document.getElementById('temp-out').textContent = fmtTemp(outside);
+                document.getElementById('temp-2dong').textContent = fmtTemp(now['2동_c']);
+                document.getElementById('temp-3dong').textContent = fmtTemp(now['3동_c']);
+
+                // GDD 값/목표
+                const gddTotal = toNumber(pick(gdd.total, gdd.cum_from_0215, gdd['누적_gdd_0215']));
+                const budTarget = toNumber(pick(gdd.target_bud, gdd.H_BUD, 80));
+                const bloomTarget = toNumber(pick(gdd.target_bloom, gdd.H_BLOOM, 180));
+
+                document.getElementById('gdd-total').textContent = gddTotal ?? '-';
+                document.getElementById('gdd-total2').textContent = gddTotal ?? '-';
+                document.getElementById('gdd-bud').textContent = budTarget ?? '-';
+                document.getElementById('gdd-bloom').textContent = bloomTarget ?? '-';
+
+                // 진행률(없으면 계산)
+                const progress = pick(
+                    gdd.progress,
+                    (gddTotal !== null && budTarget) ? `${Math.min(100, Math.round((gddTotal / budTarget) * 100))}%` : '-'
+                );
+                document.getElementById('gdd-progress').textContent = progress;
+                document.getElementById('gdd-basis').textContent = pick(gdd.basis, '-');
+
+                // 예상일(없으면 단순 추정)
+                const budDate = pick(
+                    gdd.bud_date,
+                    gdd.pred_bud10_date,
+                    (gddTotal !== null && budTarget !== null) ? estimateDate(Math.max(0, budTarget - gddTotal)) : '계산중'
+                );
+                const bloomDate = pick(
+                    gdd.bloom_date,
+                    gdd.pred_bloom50_date,
+                    (gddTotal !== null && bloomTarget !== null) ? estimateDate(Math.max(0, bloomTarget - gddTotal)) : '계산중'
+                );
+                document.getElementById('bud-date').textContent = budDate;
+                document.getElementById('bloom-date').textContent = bloomDate;
+
                 // 칠링
-                document.getElementById('chill-total').textContent = data.chill.total_days;
-                
+                const chillPct = pick(
+                    chill.progress,
+                    chill.pct !== undefined ? `${chill.pct}%` : undefined,
+                    '-'
+                );
+                document.getElementById('chill-progress').textContent = chillPct;
+                document.getElementById('chill-total').textContent = pick(chill.total_days, chill.cum, '-');
+
+
+                // 관수
+                const irrigation = data.irrigation || {};
+                const zone = (irrigation.zones || [])[0] || {};
+                const rec = zone.recommendation || {};
+                const response = zone.response || {};
+                const mmDefault = toNumber(rec.mm_per_h) ?? toNumber((irrigation.defaults || {}).mm_per_h) ?? 6;
+
+                document.getElementById('irr-theta-pct').textContent = zone.theta_pct_rep ?? '-';
+                document.getElementById('irr-theta-rel').textContent = toNumber(zone.theta_rel) !== null ? Number(zone.theta_rel).toFixed(3) : '-';
+                document.getElementById('irr-target').textContent = toNumber(zone.target_theta_rel) !== null ? Number(zone.target_theta_rel).toFixed(2) : '-';
+                document.getElementById('irr-deficit').textContent = toNumber(zone.deficit_theta_rel) !== null ? Number(zone.deficit_theta_rel).toFixed(3) : '-';
+                document.getElementById('irr-needed-min').textContent = rec.needed_minutes ?? '-';
+                document.getElementById('irr-needed-mm').textContent = rec.needed_mm ?? '-';
+                document.getElementById('irr-cycle').textContent = rec.cycle?.enabled ? rec.cycle.plan : '단발 관수';
+                document.getElementById('irr-reasons').textContent = `근거: ${(rec.reasons || []).join(', ')} | k=${response.k_theta_rel_per_mm ?? '-'} theta_rel/mm`;
+
+                const mmInput = document.getElementById('irr-mmph');
+                const minInput = document.getElementById('irr-minutes');
+                const runBtn = document.getElementById('irr-run');
+                const simOut = document.getElementById('irr-sim-result');
+                mmInput.value = mmDefault;
+                minInput.value = rec.needed_minutes ?? 0;
+
+                runBtn.onclick = () => {
+                    const mmph = Math.max(0.1, Number(mmInput.value || mmDefault));
+                    const minutes = Math.min(120, Math.max(0, Number(minInput.value || 0)));
+                    const theta = toNumber(zone.theta_rel) ?? 0;
+                    const target = toNumber(zone.target_theta_rel) ?? 0.7;
+                    const k = Math.max(0.001, toNumber(response.k_theta_rel_per_mm) ?? 0.04);
+                    const predicted = Math.min(1, theta + k * mmph * (minutes / 60));
+                    const reached = predicted >= target;
+                    simOut.textContent = `예상 theta_rel ${predicted.toFixed(3)} (${reached ? '목표 도달' : '목표 미도달'})`;
+                };
+
                 // 시간
-                document.getElementById('timestamp').textContent = new Date(data.timestamp).toLocaleString('ko-KR');
-                
+                const tsRaw = pick(data.updated_utc, data.timestamp, now.timestamp);
+                const ts = tsRaw ? new Date(tsRaw) : null;
+                document.getElementById('timestamp').textContent = (ts && !Number.isNaN(ts.getTime()))
+                    ? ts.toLocaleString('ko-KR')
+                    : (tsRaw || '-');
+
                 // 진행도 바
-                document.querySelector('.gdd').style.setProperty('--progress', data.gdd.progress);
+                document.querySelector('.gdd').style.setProperty('--progress', String(progress || '0%'));
+            })
+            .catch(() => {
+                document.getElementById('timestamp').textContent = '데이터 로드 실패';
             });
     </script>
 </body>
