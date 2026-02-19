@@ -1,0 +1,88 @@
+{
+  "start_date": "2026-02-17 11:41:53",
+  "end_date": "2026-02-19 11:41:53",
+  "candidates": [
+    "temp_and_humidity_ch1.temperature",
+    "temp_and_humidity_ch1",
+    "indoor.temperature",
+    "indoor",
+    "temp_and_humidity_ch2.temperature",
+    "temp_and_humidity_ch2",
+    "temp_and_humidity_ch3.temperature",
+    "temp_and_humidity_ch3"
+  ],
+  "results": [
+    {
+      "call_back": "temp_and_humidity_ch1.temperature",
+      "http_status": 200,
+      "url": "https://api.ecowitt.net/api/v3/device/history?application_key=A173F6BFBBBD80ABB1F3E85E63C694E3&api_key=963717d1-764c-47f8-aecf-ffddebddba03&mac=30%3A83%3A98%3AA7%3A26%3A4F&start_date=2026-02-17+11%3A41%3A53&end_date=2026-02-19+11%3A41%3A53&call_back=temp_and_humidity_ch1.temperature",
+      "code": 0,
+      "msg": "success",
+      "data_len": null,
+      "ok": false
+    },
+    {
+      "call_back": "temp_and_humidity_ch1",
+      "http_status": 200,
+      "url": "https://api.ecowitt.net/api/v3/device/history?application_key=A173F6BFBBBD80ABB1F3E85E63C694E3&api_key=963717d1-764c-47f8-aecf-ffddebddba03&mac=30%3A83%3A98%3AA7%3A26%3A4F&start_date=2026-02-17+11%3A41%3A53&end_date=2026-02-19+11%3A41%3A53&call_back=temp_and_humidity_ch1",
+      "code": 0,
+      "msg": "success",
+      "data_len": null,
+      "ok": false
+    },
+    {
+      "call_back": "indoor.temperature",
+      "http_status": 200,
+      "url": "https://api.ecowitt.net/api/v3/device/history?application_key=A173F6BFBBBD80ABB1F3E85E63C694E3&api_key=963717d1-764c-47f8-aecf-ffddebddba03&mac=30%3A83%3A98%3AA7%3A26%3A4F&start_date=2026-02-17+11%3A41%3A53&end_date=2026-02-19+11%3A41%3A53&call_back=indoor.temperature",
+      "code": 0,
+      "msg": "success",
+      "data_len": null,
+      "ok": false
+    },
+    {
+      "call_back": "indoor",
+      "http_status": 200,
+      "url": "https://api.ecowitt.net/api/v3/device/history?application_key=A173F6BFBBBD80ABB1F3E85E63C694E3&api_key=963717d1-764c-47f8-aecf-ffddebddba03&mac=30%3A83%3A98%3AA7%3A26%3A4F&start_date=2026-02-17+11%3A41%3A53&end_date=2026-02-19+11%3A41%3A53&call_back=indoor",
+      "code": 0,
+      "msg": "success",
+      "data_len": null,
+      "ok": false
+    },
+    {
+      "call_back": "temp_and_humidity_ch2.temperature",
+      "http_status": 200,
+      "url": "https://api.ecowitt.net/api/v3/device/history?application_key=A173F6BFBBBD80ABB1F3E85E63C694E3&api_key=963717d1-764c-47f8-aecf-ffddebddba03&mac=30%3A83%3A98%3AA7%3A26%3A4F&start_date=2026-02-17+11%3A41%3A53&end_date=2026-02-19+11%3A41%3A53&call_back=temp_and_humidity_ch2.temperature",
+      "code": 0,
+      "msg": "success",
+      "data_len": null,
+      "ok": false
+    },
+    {
+      "call_back": "temp_and_humidity_ch2",
+      "http_status": 200,
+      "url": "https://api.ecowitt.net/api/v3/device/history?application_key=A173F6BFBBBD80ABB1F3E85E63C694E3&api_key=963717d1-764c-47f8-aecf-ffddebddba03&mac=30%3A83%3A98%3AA7%3A26%3A4F&start_date=2026-02-17+11%3A41%3A53&end_date=2026-02-19+11%3A41%3A53&call_back=temp_and_humidity_ch2",
+      "code": 0,
+      "msg": "success",
+      "data_len": null,
+      "ok": false
+    },
+    {
+      "call_back": "temp_and_humidity_ch3.temperature",
+      "http_status": 200,
+      "url": "https://api.ecowitt.net/api/v3/device/history?application_key=A173F6BFBBBD80ABB1F3E85E63C694E3&api_key=963717d1-764c-47f8-aecf-ffddebddba03&mac=30%3A83%3A98%3AA7%3A26%3A4F&start_date=2026-02-17+11%3A41%3A53&end_date=2026-02-19+11%3A41%3A53&call_back=temp_and_humidity_ch3.temperature",
+      "code": 0,
+      "msg": "success",
+      "data_len": null,
+      "ok": false
+    },
+    {
+      "call_back": "temp_and_humidity_ch3",
+      "http_status": 200,
+      "url": "https://api.ecowitt.net/api/v3/device/history?application_key=A173F6BFBBBD80ABB1F3E85E63C694E3&api_key=963717d1-764c-47f8-aecf-ffddebddba03&mac=30%3A83%3A98%3AA7%3A26%3A4F&start_date=2026-02-17+11%3A41%3A53&end_date=2026-02-19+11%3A41%3A53&call_back=temp_and_humidity_ch3",
+      "code": 0,
+      "msg": "success",
+      "data_len": null,
+      "ok": false
+    }
+  ]
+}
