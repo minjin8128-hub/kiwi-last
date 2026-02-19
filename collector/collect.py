@@ -6,7 +6,9 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 # GitHub Secrets (Settings → Secrets에서 설정)
-ECOWITT_API_KEY = os.environ.get('ECOWITT_API_KEY', 'dummy')
+ECOWITT_APPLICATION_KEY = os.environ.get('ECOWITT_APPLICATION_KEY', '')
+ECOWITT_API_KEY = os.environ.get('ECOWITT_API_KEY', '')
+ECOWITT_DEVICE_ID = os.environ.get('ECOWITT_DEVICE_ID', '')
 TBASE_C = float(os.environ.get('TBASE_C', '5.0'))
 H_BUD = float(os.environ.get('H_BUD', '80.0'))
 H_BLOOM = float(os.environ.get('H_BLOOM', '180.0'))
@@ -16,11 +18,14 @@ CHILL_TARGET_DAYS = float(os.environ.get('CHILL_TARGET_DAYS', '100.0'))
 def get_ecowitt_recent():
     """실시간 데이터 가져오기"""
     try:
+        if not (ECOWITT_APPLICATION_KEY and ECOWITT_API_KEY and ECOWITT_DEVICE_ID):
+            raise ValueError('ECOWITT 환경변수(application/api/device_id) 누락')
+
         url = (
             "https://api.ecowitt.net/api/v3/device/current"
-            f"?application_key={ECOWITT_API_KEY}"
+            f"?application_key={ECOWITT_APPLICATION_KEY}"
             f"&api_key={ECOWITT_API_KEY}"
-            "&device_id=YOUR_DEVICE_ID&time_zone=KST"
+            f"&device_id={ECOWITT_DEVICE_ID}&time_zone=KST"
         )
         resp = requests.get(url, timeout=10)
         data = resp.json()['data']['device'][0]['data']
@@ -38,8 +43,11 @@ def get_ecowitt_recent():
             '3동_c': t3,
             '토양수분': float(data.get('soil_moisture', 0))
         }
-    except Exception:
-        return {'timestamp': datetime.now().isoformat(), 'error': 'API 연결 오류'}
+    except Exception as exc:
+        return {
+            'timestamp': datetime.now().isoformat(),
+            'error': f'API 연결 오류: {exc}'
+        }
 
 
 def load_or_create_daily():
