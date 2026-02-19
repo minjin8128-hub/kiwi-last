@@ -26,7 +26,8 @@ jobs:
 
       - name: Validate no merge conflict markers
         run: |
-          if rg -n "^(<<<<<<<|=======|>>>>>>>)" . --glob '!*.png' --glob '!*.jpg' --glob '!*.jpeg' --glob '!*.gif'; then
+          if git grep -nE "^(<<<<<<<|=======|>>>>>>>)" -- . >/tmp/conflicts.txt; then
+            cat /tmp/conflicts.txt
             echo "Merge conflict markers found. Resolve and commit clean files."
             exit 1
           fi
@@ -35,6 +36,7 @@ jobs:
         env:
           ECOWITT_API_KEY: ${{ secrets.ECOWITT_API_KEY }}
           ECOWITT_APPLICATION_KEY: ${{ secrets.ECOWITT_APPLICATION_KEY }}
+          ECOWITT_DEVICE_ID: ${{ secrets.ECOWITT_DEVICE_ID }}
           ECOWITT_MAC: ${{ secrets.ECOWITT_MAC }}
         run: python collector/collect.py
 

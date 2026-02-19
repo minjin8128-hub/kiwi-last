@@ -74,12 +74,21 @@ def get_ecowitt_recent():
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
         payload = resp.json()
+        if isinstance(payload, dict) and payload.get('code') not in (None, 0):
+            raise ValueError(f"ecowitt code={payload.get('code')} msg={payload.get('msg')}")
 
-        raw = payload.get('data', {}).get('device', [{}])[0].get('data', {})
-        if not raw:
+        data_root = payload.get('data', {}) if isinstance(payload, dict) else {}
+        if isinstance(data_root, dict) and isinstance(data_root.get('device'), list) and data_root.get('device'):
+            raw = data_root['device'][0].get('data', {})
+        elif isinstance(data_root, dict):
+            raw = data_root.get('data', {}) or data_root
+        else:
+            raw = {}
+
+        if not isinstance(raw, dict) or not raw:
             raise ValueError(f'empty payload: {payload}')
 
-        outside = _extract(raw, 'outdoor', 'outdoor_c', 'outdoor.temperature')
+        outside = _extract(raw, 'outdoor', 'outdoor_c', 'outdoor.temperature', 'temp_and_humidity_outdoor.temperature')
         t2 = _extract(raw, '2동_c', 'temp_and_humidity_ch1.temperature')
         t3 = _extract(raw, '3동_c', 'temp_and_humidity_ch2.temperature')
         tin = _extract(raw, 'indoor.temperature', 'tin')
