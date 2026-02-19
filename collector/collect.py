@@ -6,7 +6,8 @@ import pandas as pd
 from datetime import datetime, timedelta, timezone
 
 ECOWITT_API_KEY = os.environ.get('ECOWITT_API_KEY', 'dummy')
-ECOWITT_DEVICE_ID = os.environ.get('ECOWITT_DEVICE_ID', 'YOUR_DEVICE_ID')
+ECOWITT_APPLICATION_KEY = os.environ.get('ECOWITT_APPLICATION_KEY', ECOWITT_API_KEY)
+ECOWITT_DEVICE_ID = os.environ.get('ECOWITT_DEVICE_ID') or os.environ.get('ECOWITT_MAC') or 'YOUR_DEVICE_ID'
 TBASE_C = float(os.environ.get('TBASE_C', '5.0'))
 H_BUD = float(os.environ.get('H_BUD', '80.0'))
 H_BLOOM = float(os.environ.get('H_BLOOM', '180.0'))
@@ -59,15 +60,24 @@ def _calc_slope_per_hour(df, value_col, hours):
 
 def get_ecowitt_recent():
     try:
-        url = (
-            'https://api.ecowitt.net/api/v3/device/current'
-            f'?application_key={ECOWITT_API_KEY}'
-            f'&api_key={ECOWITT_API_KEY}'
-            f'&device_id={ECOWITT_DEVICE_ID}&time_zone=KST'
-        )
+        query = [
+            f'application_key={ECOWITT_APPLICATION_KEY}',
+            f'api_key={ECOWITT_API_KEY}',
+            'time_zone=KST',
+        ]
+        if ':' in ECOWITT_DEVICE_ID or '-' in ECOWITT_DEVICE_ID:
+            query.append(f'mac={ECOWITT_DEVICE_ID}')
+        else:
+            query.append(f'device_id={ECOWITT_DEVICE_ID}')
+
+        url = 'https://api.ecowitt.net/api/v3/device/current?' + '&'.join(query)
         resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
         payload = resp.json()
-        raw = payload['data']['device'][0]['data']
+
+        raw = payload.get('data', {}).get('device', [{}])[0].get('data', {})
+        if not raw:
+            raise ValueError(f'empty payload: {payload}')
 
         outside = _extract(raw, 'outdoor', 'outdoor_c', 'outdoor.temperature')
         t2 = _extract(raw, '2동_c', 'temp_and_humidity_ch1.temperature')
@@ -95,8 +105,8 @@ def get_ecowitt_recent():
             'soil': soils,
             'soil_moist_pct_rep': soil_rep,
         }
-    except Exception:
-        return {'timestamp': datetime.now(timezone.utc).isoformat(), 'error': 'API 연결 오류'}
+    except Exception as e:
+        return {'timestamp': datetime.now(timezone.utc).isoformat(), 'error': f'API 연결 오류: {e}'}
 
 
 def load_or_create_daily():
@@ -359,4 +369,6 @@ soil_history.to_csv('data/soil_history.csv', index=False)
 with open('data/status.json', 'w', encoding='utf-8') as f:
     json.dump(status, f, indent=2, ensure_ascii=False)
 
-print(f"✅ 업데이트 완료: GDD {status['gdd']['total']} ({status['gdd']['progress']}), zone_main 권장 {status['irrigation']['zones'][0].get('recommendation',{}).get('needed_minutes','-')}분")
+needed = status['irrigation']['zones'][0].get('recommendation', {}).get('needed_minutes')
+needed_text = f"{needed}분" if needed is not None else '계산불가'
+print(f"✅ 업데이트 완료: GDD {status['gdd']['total']} ({status['gdd']['progress']}), zone_main 권장 {needed_text}")

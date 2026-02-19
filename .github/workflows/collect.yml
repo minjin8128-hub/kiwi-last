@@ -26,7 +26,7 @@ jobs:
 
       - name: Validate no merge conflict markers
         run: |
-          if rg -n "^(<<<<<<<|=======|>>>>>>>)" collector index.html docs/index.html; then
+          if rg -n "^(<<<<<<<|=======|>>>>>>>)" . --glob '!*.png' --glob '!*.jpg' --glob '!*.jpeg' --glob '!*.gif'; then
             echo "Merge conflict markers found. Resolve and commit clean files."
             exit 1
           fi
