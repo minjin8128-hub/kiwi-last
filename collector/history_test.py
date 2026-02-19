@@ -21,13 +21,14 @@ def main():
 
     url = "https://api.ecowitt.net/api/v3/device/history"
     params = {
-        "application_key": app_key,
-        "api_key": api_key,
-        "mac": mac,
-        "start_date": start,
-        "end_date": end,
-        "call_back": "all",
-    }
+    "application_key": app_key,
+    "api_key": api_key,
+    "mac": mac,
+    "start_date": start,
+    "end_date": end,
+    # "call_back": "all",  # <-- history에선 invalid
+}
+
 
     r = requests.get(url, params=params, timeout=60)
 
