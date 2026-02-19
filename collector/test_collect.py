@@ -89,7 +89,18 @@ def test_get_ecowitt_recent_with_mac_selector():
 
 
 def test_no_merge_conflict_markers():
-    text = Path('collector/collect.py').read_text(encoding='utf-8')
-    assert '<<<<<<<' not in text
-    assert '=======' not in text
-    assert '>>>>>>>' not in text
+    targets = [
+        Path('collector/collect.py'),
+        Path('collector/test_collect.py'),
+        Path('.github/workflows/collect.yml'),
+        Path('index.html'),
+        Path('docs/index.html'),
+    ]
+    for target in targets:
+        text = target.read_text(encoding='utf-8')
+        start = '<' * 7
+        mid = '=' * 7
+        end = '>' * 7
+        assert start not in text, f'merge marker in {target}'
+        assert mid not in text, f'merge marker in {target}'
+        assert end not in text, f'merge marker in {target}'

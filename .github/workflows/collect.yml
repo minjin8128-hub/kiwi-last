@@ -24,6 +24,29 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Detect merge-conflict markers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          files = subprocess.check_output(['git', 'ls-files'], text=True).splitlines()
+          exts = ('.py', '.yml', '.yaml', '.html')
+          start, mid, end = '<' * 7, '=' * 7, '>' * 7
+          bad = []
+          for f in files:
+              if not f.endswith(exts):
+                  continue
+              text = Path(f).read_text(encoding='utf-8', errors='ignore')
+              if start in text or mid in text or end in text:
+                  bad.append(f)
+          if bad:
+              print('❌ Merge conflict markers found:')
+              for f in bad:
+                  print('-', f)
+              raise SystemExit(1)
+          print('✅ No merge conflict markers found')
+          PY
+
       - name: Run tests
         run: python -m pytest -q
 
