@@ -68,17 +68,17 @@ async function loadStatus() {
     const s = await res.json();
 
     // 1) 업데이트 시간
-    document.getElementById("updated").textContent = s.updated_utc ?? "-";
+    document.getElementById("updated").textContent = s.updated_utc ?? s.timestamp ?? "-";
 
     // 2) 현재 온도
     const now = s.now ?? {};
-    document.getElementById("t_out").textContent = now["외부_c"] ?? "-";
+    document.getElementById("t_out").textContent = now["외부_c"] ?? now["외부온도"] ?? "-";
     document.getElementById("t_2").textContent  = now["2동_c"] ?? "-";
     document.getElementById("t_3").textContent  = now["3동_c"] ?? "-";
 
     // 3) GDD
     const g = s.gdd ?? {};
-    const gddVal = g.cum_from_0215 ?? g["누적_gdd_0215"] ?? "-";
+    const gddVal = g.cum_from_0215 ?? g.total ?? g["누적_gdd_0215"] ?? "-";
     document.getElementById("gdd").textContent = gddVal;
 
     const bud   = g.pred_bud10_date   ?? g["발아10_예측일"]  ?? "-";
@@ -88,8 +88,8 @@ async function loadStatus() {
 
     // 4) 칠링
     const c = s.chill ?? {};
-    const pct = c.pct ?? c["진행률_pct"] ?? "-";
-    const cum = c.cum ?? c["누적"] ?? "-";
+    const pct = c.pct ?? c["진행률_pct"] ?? c.progress ?? "-";
+    const cum = c.cum ?? c.total_days ?? c["누적"] ?? "-";
     document.getElementById("chill").textContent = `${cum}점 (${pct}%)`;
 
     const d70 = c.date_70 ?? c["후반70_날짜"] ?? "-";

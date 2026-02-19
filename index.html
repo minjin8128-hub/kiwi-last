@@ -16,13 +16,13 @@
 </head>
 <body>
     <h1>🥝 제주 키위 모니터링</h1>
-    
+
     <div class="card" id="now">
         <div>실시간 온도</div>
         <div class="temp" id="temp-out">-</div>
         <div>외부 / <span id="temp-2dong">-</span> (2동) / <span id="temp-3dong">-</span> (3동)</div>
     </div>
-    
+
     <div class="card">
         <div>GDD 진행도 <span class="progress" id="gdd-progress">-</span></div>
         <div class="gdd">
@@ -31,52 +31,109 @@
         </div>
         <small id="gdd-basis">-</small>
     </div>
-    
+
     <div class="card">
         <div>예상 개화일 <span class="progress" id="chill-progress">-</span></div>
         <div class="pred">발아10%: <span id="bud-date">-</span></div>
         <div class="pred">만개50%: <span id="bloom-date">-</span></div>
     </div>
-    
+
     <div class="card">
         <div>칠링 누적 <span id="chill-total">-</span> / 100일</div>
     </div>
-    
+
     <div style="text-align:center; padding:20px 0; color:#7f8c8d;">
         최종 업데이트: <span id="timestamp">-</span><br>
         <button onclick="location.reload()">새로고침</button>
     </div>
 
     <script>
+        const toNumber = (value) => {
+            if (value === null || value === undefined || value === '') return null;
+            const n = Number(value);
+            return Number.isFinite(n) ? n : null;
+        };
+
+        const fmtTemp = (value) => {
+            const n = toNumber(value);
+            return n === null ? '-' : `${n.toFixed(1)}°C`;
+        };
+
+        const pick = (...values) => values.find(v => v !== undefined && v !== null && v !== '');
+
+        const estimateDate = (remaining, dailyGdd = 2.0) => {
+            const days = Math.max(0, Math.floor((remaining / Math.max(dailyGdd, 0.5)) * 1.2));
+            const d = new Date();
+            d.setDate(d.getDate() + days);
+            return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+        };
+
         fetch('data/status.json')
-            .then(r=>r.json())
-            .then(data => {
+            .then((r) => r.json())
+            .then((data) => {
+                const now = data.now || {};
+                const gdd = data.gdd || {};
+                const chill = data.chill || {};
+
                 // 실시간
-                document.getElementById('temp-out').textContent = data.now.외부온도?.toFixed(1) + '°C';
-                document.getElementById('temp-2dong').textContent = data.now['2동_c']?.toFixed(1) + '°C';
-                document.getElementById('temp-3dong').textContent = data.now['3동_c']?.toFixed(1) + '°C';
-                
-                // GDD
-                document.getElementById('gdd-total').textContent = data.gdd.total;
-                document.getElementById('gdd-total2').textContent = data.gdd.total;
-                document.getElementById('gdd-bud').textContent = data.gdd.target_bud;
-                document.getElementById('gdd-bloom').textContent = data.gdd.target_bloom;
-                document.getElementById('gdd-progress').textContent = data.gdd.progress;
-                document.getElementById('gdd-basis').textContent = data.gdd.basis;
-                
-                // 예상일
-                document.getElementById('bud-date').textContent = data.gdd.bud_date;
-                document.getElementById('bloom-date').textContent = data.gdd.bloom_date;
-                document.getElementById('chill-progress').textContent = data.chill.progress;
-                
+                const outside = pick(now['외부_c'], now['외부온도']);
+                document.getElementById('temp-out').textContent = fmtTemp(outside);
+                document.getElementById('temp-2dong').textContent = fmtTemp(now['2동_c']);
+                document.getElementById('temp-3dong').textContent = fmtTemp(now['3동_c']);
+
+                // GDD 값/목표
+                const gddTotal = toNumber(pick(gdd.total, gdd.cum_from_0215, gdd['누적_gdd_0215']));
+                const budTarget = toNumber(pick(gdd.target_bud, gdd.H_BUD, 80));
+                const bloomTarget = toNumber(pick(gdd.target_bloom, gdd.H_BLOOM, 180));
+
+                document.getElementById('gdd-total').textContent = gddTotal ?? '-';
+                document.getElementById('gdd-total2').textContent = gddTotal ?? '-';
+                document.getElementById('gdd-bud').textContent = budTarget ?? '-';
+                document.getElementById('gdd-bloom').textContent = bloomTarget ?? '-';
+
+                // 진행률(없으면 계산)
+                const progress = pick(
+                    gdd.progress,
+                    (gddTotal !== null && budTarget) ? `${Math.min(100, Math.round((gddTotal / budTarget) * 100))}%` : '-'
+                );
+                document.getElementById('gdd-progress').textContent = progress;
+                document.getElementById('gdd-basis').textContent = pick(gdd.basis, '-');
+
+                // 예상일(없으면 단순 추정)
+                const budDate = pick(
+                    gdd.bud_date,
+                    gdd.pred_bud10_date,
+                    (gddTotal !== null && budTarget !== null) ? estimateDate(Math.max(0, budTarget - gddTotal)) : '계산중'
+                );
+                const bloomDate = pick(
+                    gdd.bloom_date,
+                    gdd.pred_bloom50_date,
+                    (gddTotal !== null && bloomTarget !== null) ? estimateDate(Math.max(0, bloomTarget - gddTotal)) : '계산중'
+                );
+                document.getElementById('bud-date').textContent = budDate;
+                document.getElementById('bloom-date').textContent = bloomDate;
+
                 // 칠링
-                document.getElementById('chill-total').textContent = data.chill.total_days;
-                
+                const chillPct = pick(
+                    chill.progress,
+                    chill.pct !== undefined ? `${chill.pct}%` : undefined,
+                    '-'
+                );
+                document.getElementById('chill-progress').textContent = chillPct;
+                document.getElementById('chill-total').textContent = pick(chill.total_days, chill.cum, '-');
+
                 // 시간
-                document.getElementById('timestamp').textContent = new Date(data.timestamp).toLocaleString('ko-KR');
-                
+                const tsRaw = pick(data.updated_utc, data.timestamp, now.timestamp);
+                const ts = tsRaw ? new Date(tsRaw) : null;
+                document.getElementById('timestamp').textContent = (ts && !Number.isNaN(ts.getTime()))
+                    ? ts.toLocaleString('ko-KR')
+                    : (tsRaw || '-');
+
                 // 진행도 바
-                document.querySelector('.gdd').style.setProperty('--progress', data.gdd.progress);
+                document.querySelector('.gdd').style.setProperty('--progress', String(progress || '0%'));
+            })
+            .catch(() => {
+                document.getElementById('timestamp').textContent = '데이터 로드 실패';
             });
     </script>
 </body>
