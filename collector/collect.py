@@ -17,19 +17,16 @@ CHILL_TARGET_DAYS = float(os.environ.get('CHILL_TARGET_DAYS', '100.0'))
 
 
 def _to_celsius(value, unit=None):
-    """문자/숫자 값을 섭씨로 변환(단위가 ºF면 변환)"""
     try:
         v = float(value)
     except (TypeError, ValueError):
         return 0.0
-
     if unit and 'f' in str(unit).lower():
         return (v - 32) * 5.0 / 9.0
     return v
 
 
 def _read_temp(data, direct_key, nested_key):
-    """평탄 키/중첩 키 둘 다 지원해서 온도 추출"""
     if direct_key in data:
         return _to_celsius(data.get(direct_key))
 
@@ -46,17 +43,47 @@ def _read_temp(data, direct_key, nested_key):
     return 0.0
 
 
+def _extract_device_data(payload):
+    """Ecowitt 응답 변형 대응"""
+    data = payload.get('data', {}) if isinstance(payload, dict) else {}
+
+    if isinstance(data, dict) and isinstance(data.get('device'), list) and data['device']:
+        first = data['device'][0]
+        if isinstance(first, dict) and isinstance(first.get('data'), dict):
+            return first['data']
+
+    if isinstance(data, dict):
+        return data
+
+    raise ValueError('Ecowitt 응답에서 device data를 찾지 못함')
+
+
+def _read_soil_moisture(data):
+    if 'soil_moisture' in data:
+        try:
+            return float(data.get('soil_moisture', 0))
+        except (TypeError, ValueError):
+            return 0.0
+
+    soil = data.get('soil_ch1', {})
+    if isinstance(soil, dict):
+        sm = soil.get('soilmoisture', {})
+        if isinstance(sm, dict):
+            try:
+                return float(sm.get('value', 0))
+            except (TypeError, ValueError):
+                return 0.0
+    return 0.0
+
+
 def get_ecowitt_recent():
-    """실시간 데이터 가져오기"""
     try:
         if not (ECOWITT_APPLICATION_KEY and ECOWITT_API_KEY):
             raise ValueError('ECOWITT 환경변수(application/api) 누락')
 
-        device_selector = ''
         if ECOWITT_DEVICE_ID:
             device_selector = f'&device_id={ECOWITT_DEVICE_ID}'
         elif ECOWITT_MAC:
-            # 기존 워크플로우 호환: MAC 기반 호출도 허용
             device_selector = f'&mac={ECOWITT_MAC}'
         else:
             raise ValueError('ECOWITT 환경변수(device_id 또는 mac) 누락')
@@ -69,7 +96,8 @@ def get_ecowitt_recent():
         )
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
-        data = resp.json()['data']['device'][0]['data']
+        payload = resp.json()
+        data = _extract_device_data(payload)
 
         outdoor = _read_temp(data, 'outdoor_c', 'outdoor')
         t2 = _read_temp(data, '2동_c', 'temp_and_humidity_ch1')
@@ -81,7 +109,7 @@ def get_ecowitt_recent():
             '외부_c': outdoor,
             '2동_c': t2,
             '3동_c': t3,
-            '토양수분': float(data.get('soil_moisture', 0))
+            '토양수분': _read_soil_moisture(data)
         }
     except Exception as exc:
         return {
@@ -95,20 +123,16 @@ def get_ecowitt_recent():
 
 
 def load_or_create_daily():
-    """daily.csv 로드/생성"""
     if os.path.exists('data/daily.csv'):
         df = pd.read_csv('data/daily.csv')
     else:
         df = pd.DataFrame(columns=['date', 'tmin_2dong', 'tmax_2dong', 'tmean', 'gdd', 'cum_gdd', 'chill'])
-
     df['date'] = pd.to_datetime(df['date'])
     return df.sort_values('date').reset_index(drop=True)
 
 
 def update_daily_data(df):
-    """2동 데이터로 daily 업데이트 + GDD 계산"""
     now = get_ecowitt_recent()
-
     today = datetime.now().date()
     today_row = df[df['date'].dt.date == today]
 
@@ -127,7 +151,6 @@ def update_daily_data(df):
     df['gdd'] = (df['tmean'] - TBASE_C).clip(lower=0)
     df['cum_gdd'] = df['gdd'].cumsum()
     df['chill'] = (df['tmean'] < 10).astype(int).cumsum()
-
     return df, now
 
 
@@ -141,8 +164,8 @@ def build_status(df, now_data):
     today = datetime.now().date()
     bud_date = today + timedelta(days=int(bud_remaining / max(avg_daily_gdd, 0.5) * 1.2))
     bloom_date = today + timedelta(days=int(bloom_remaining / max(avg_daily_gdd, 0.5) * 1.2))
-
     chill_pct = min(100, chill_days / CHILL_TARGET_DAYS * 100) if CHILL_TARGET_DAYS > 0 else 0
+
     return {
         'timestamp': datetime.now().isoformat(),
         'updated_utc': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
@@ -168,17 +191,12 @@ def build_status(df, now_data):
             'progress': f'{chill_pct:.0f}%',
             'pct': round(chill_pct, 1)
         },
-        'config': {
-            'TBASE_C': TBASE_C,
-            'H_BUD': H_BUD,
-            'H_BLOOM': H_BLOOM
-        }
+        'config': {'TBASE_C': TBASE_C, 'H_BUD': H_BUD, 'H_BLOOM': H_BLOOM}
     }
 
 
 def main():
     os.makedirs('data', exist_ok=True)
-
     df = load_or_create_daily()
     df, now_data = update_daily_data(df)
     status = build_status(df, now_data)
