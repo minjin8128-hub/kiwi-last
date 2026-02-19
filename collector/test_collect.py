@@ -41,6 +41,12 @@ def test_read_temp_nested_fahrenheit_to_celsius():
     assert round(value, 2) == 10.0
 
 
+def test_read_temp_dotted_key_fallback():
+    data = {'temp_and_humidity_ch1.temperature': '55.4'}
+    value = collect._read_temp(data, '2동_c', 'temp_and_humidity_ch1')
+    assert round(value, 1) == 55.4
+
+
 def test_read_soil_moisture_fallback():
     data = {'soil_ch1': {'soilmoisture': {'value': '44'}}}
     assert collect._read_soil_moisture(data) == 44.0

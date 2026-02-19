@@ -33,7 +33,7 @@ def _read_temp(data, direct_key, nested_key):
     node = data.get(nested_key, {})
     if isinstance(node, dict):
         temp_node = node.get('temperature', {})
-        if isinstance(temp_node, dict):
+        if isinstance(temp_node, dict) and temp_node.get('value') is not None:
             return _to_celsius(temp_node.get('value'), temp_node.get('unit'))
 
     dotted = data.get(f'{nested_key}.temperature')
