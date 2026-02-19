@@ -1,115 +1,83 @@
-<!doctype html>
-<html lang="ko">
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>키위 오늘 상태</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 16px; }
-    .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
-    .k { color: #666; font-size: 14px; }
-    .v { font-size: 22px; margin-top: 4px; }
-    .row { display: flex; gap: 10px; }
-    .row > div { flex: 1; }
-    button { padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc; background: #fff; }
-    pre { white-space: pre-wrap; font-size: 12px; color: #555; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>제주 키위 적산온도 모니터링</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; max-width: 400px; margin: 20px auto; padding: 20px; background: #f8f9fa; }
+        .card { background: white; padding: 20px; border-radius: 12px; margin: 10px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .temp { font-size: 24px; font-weight: bold; color: #2c3e50; }
+        .gdd { background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb var(--progress)); padding: 12px; border-radius: 8px; }
+        .pred { color: #27ae60; font-weight: bold; }
+        .progress { color: #3498db; }
+        small { color: #7f8c8d; }
+    </style>
 </head>
 <body>
-  <h2>키위 오늘 상태</h2>
-
-  <div class="card">
-    <div class="k">마지막 업데이트(UTC)</div>
-    <div class="v" id="updated">불러오는 중...</div>
-    <button onclick="loadStatus()">새로고침</button>
-  </div>
-
-  <div class="card">
-    <div class="k">온도(°C)</div>
-    <div class="row">
-      <div>
-        <div class="k">외부</div>
-        <div class="v" id="t_out">-</div>
-      </div>
-      <div>
-        <div class="k">2동</div>
-        <div class="v" id="t_2">-</div>
-      </div>
-      <div>
-        <div class="k">3동</div>
-        <div class="v" id="t_3">-</div>
-      </div>
+    <h1>🥝 제주 키위 모니터링</h1>
+    
+    <div class="card" id="now">
+        <div>실시간 온도</div>
+        <div class="temp" id="temp-out">-</div>
+        <div>외부 / <span id="temp-2dong">-</span> (2동) / <span id="temp-3dong">-</span> (3동)</div>
     </div>
-  </div>
+    
+    <div class="card">
+        <div>GDD 진행도 <span class="progress" id="gdd-progress">-</span></div>
+        <div class="gdd">
+            <strong id="gdd-total">-</strong> / <span id="gdd-bud">-</span> (발아10%)<br>
+            <strong id="gdd-total2">-</strong> / <span id="gdd-bloom">-</span> (만개50%)
+        </div>
+        <small id="gdd-basis">-</small>
+    </div>
+    
+    <div class="card">
+        <div>예상 개화일 <span class="progress" id="chill-progress">-</span></div>
+        <div class="pred">발아10%: <span id="bud-date">-</span></div>
+        <div class="pred">만개50%: <span id="bloom-date">-</span></div>
+    </div>
+    
+    <div class="card">
+        <div>칠링 누적 <span id="chill-total">-</span> / 100일</div>
+    </div>
+    
+    <div style="text-align:center; padding:20px 0; color:#7f8c8d;">
+        최종 업데이트: <span id="timestamp">-</span><br>
+        <button onclick="location.reload()">새로고침</button>
+    </div>
 
-  <div class="card">
-    <div class="k">GDD(2/15부터)</div>
-    <div class="v" id="gdd">-</div>
-    <div class="k" id="pred">발아/만개 예측일: -</div>
-  </div>
-
-  <div class="card">
-    <div class="k">칠링(11/1~2/14)</div>
-    <div class="v" id="chill">-</div>
-    <div class="k" id="chill_dates">후반/거의끝 날짜: -</div>
-  </div>
-
-  <div class="card">
-    <div class="k">문제 생기면(원본 일부)</div>
-    <pre id="rawmini"></pre>
-  </div>
-
-<script>
-async function loadStatus() {
-  try {
-    // 이 레포의 Pages 주소: https://minjin8128-hub.github.io/kiwi-last/
-    // 따라서 status.json 경로는 /kiwi-last/data/status.json 이다. [web:197]
-    const res = await fetch("/kiwi-last/data/status.json", { cache: "no-store" });
-    const s = await res.json();
-
-    // 1) 업데이트 시간
-    document.getElementById("updated").textContent = s.updated_utc ?? "-";
-
-    // 2) 현재 온도
-    const now = s.now ?? {};
-    document.getElementById("t_out").textContent = now["외부_c"] ?? "-";
-    document.getElementById("t_2").textContent  = now["2동_c"] ?? "-";
-    document.getElementById("t_3").textContent  = now["3동_c"] ?? "-";
-
-    // 3) GDD
-    const g = s.gdd ?? {};
-    const gddVal = g.cum_from_0215 ?? g["누적_gdd_0215"] ?? "-";
-    document.getElementById("gdd").textContent = gddVal;
-
-    const bud   = g.pred_bud10_date   ?? g["발아10_예측일"]  ?? "-";
-    const bloom = g.pred_bloom50_date ?? g["만개50_예측일"] ?? "-";
-    document.getElementById("pred").textContent =
-      `발아10%: ${bud} / 만개50%: ${bloom}`;
-
-    // 4) 칠링
-    const c = s.chill ?? {};
-    const pct = c.pct ?? c["진행률_pct"] ?? "-";
-    const cum = c.cum ?? c["누적"] ?? "-";
-    document.getElementById("chill").textContent = `${cum}점 (${pct}%)`;
-
-    const d70 = c.date_70 ?? c["후반70_날짜"] ?? "-";
-    const d90 = c.date_90 ?? c["거의끝90_날짜"] ?? "-";
-    document.getElementById("chill_dates").textContent =
-      `후반(70%): ${d70} / 거의끝(90%): ${d90}`;
-
-    // 5) 디버그용으로 핵심만 출력
-    document.getElementById("rawmini").textContent = JSON.stringify(
-      { now: s.now, gdd: s.gdd, chill: s.chill },
-      null,
-      2
-    );
-  } catch (e) {
-    document.getElementById("updated").textContent = "불러오기 실패(새로고침 해보세요)";
-    document.getElementById("rawmini").textContent = String(e);
-  }
-}
-loadStatus();
-</script>
+    <script>
+        fetch('data/status.json')
+            .then(r=>r.json())
+            .then(data => {
+                // 실시간
+                document.getElementById('temp-out').textContent = data.now.외부온도?.toFixed(1) + '°C';
+                document.getElementById('temp-2dong').textContent = data.now['2동_c']?.toFixed(1) + '°C';
+                document.getElementById('temp-3dong').textContent = data.now['3동_c']?.toFixed(1) + '°C';
+                
+                // GDD
+                document.getElementById('gdd-total').textContent = data.gdd.total;
+                document.getElementById('gdd-total2').textContent = data.gdd.total;
+                document.getElementById('gdd-bud').textContent = data.gdd.target_bud;
+                document.getElementById('gdd-bloom').textContent = data.gdd.target_bloom;
+                document.getElementById('gdd-progress').textContent = data.gdd.progress;
+                document.getElementById('gdd-basis').textContent = data.gdd.basis;
+                
+                // 예상일
+                document.getElementById('bud-date').textContent = data.gdd.bud_date;
+                document.getElementById('bloom-date').textContent = data.gdd.bloom_date;
+                document.getElementById('chill-progress').textContent = data.chill.progress;
+                
+                // 칠링
+                document.getElementById('chill-total').textContent = data.chill.total_days;
+                
+                // 시간
+                document.getElementById('timestamp').textContent = new Date(data.timestamp).toLocaleString('ko-KR');
+                
+                // 진행도 바
+                document.querySelector('.gdd').style.setProperty('--progress', data.gdd.progress);
+            });
+    </script>
 </body>
 </html>
-
