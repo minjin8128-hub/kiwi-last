@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 # GitHub Secrets (Settings → Secrets에서 설정)
 ECOWITT_APPLICATION_KEY = os.environ.get('ECOWITT_APPLICATION_KEY', '')
 ECOWITT_API_KEY = os.environ.get('ECOWITT_API_KEY', '')
-ECOWITT_DEVICE_ID = os.environ.get('ECOWITT_DEVICE_ID', '')
+ECOWITT_DEVICE_ID = os.environ.get('ECOWITT_DEVICE_ID', '') or os.environ.get('ECOWITT_MAC', '')
 TBASE_C = float(os.environ.get('TBASE_C', '5.0'))
 H_BUD = float(os.environ.get('H_BUD', '80.0'))
 H_BLOOM = float(os.environ.get('H_BLOOM', '180.0'))
@@ -19,7 +19,7 @@ def get_ecowitt_recent():
     """실시간 데이터 가져오기"""
     try:
         if not (ECOWITT_APPLICATION_KEY and ECOWITT_API_KEY and ECOWITT_DEVICE_ID):
-            raise ValueError('ECOWITT 환경변수(application/api/device_id) 누락')
+            raise ValueError('ECOWITT 환경변수(application/api/device_id 또는 mac) 누락')
 
         url = (
             "https://api.ecowitt.net/api/v3/device/current"
