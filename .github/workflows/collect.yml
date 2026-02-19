@@ -29,13 +29,6 @@ jobs:
           ECOWITT_MAC: ${{ secrets.ECOWITT_MAC }}
         run: python collector/collect.py
 
-      - name: Run history test (temporary)
-        env:
-          ECOWITT_API_KEY: ${{ secrets.ECOWITT_API_KEY }}
-          ECOWITT_APPLICATION_KEY: ${{ secrets.ECOWITT_APPLICATION_KEY }}
-          ECOWITT_MAC: ${{ secrets.ECOWITT_MAC }}
-        run: python collector/history_test.py
-
       - name: Commit & push
         run: |
           git config user.name "github-actions[bot]"
