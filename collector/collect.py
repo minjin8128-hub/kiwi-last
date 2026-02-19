@@ -6,29 +6,74 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 # GitHub Secrets (Settings → Secrets에서 설정)
-ECOWITT_API_KEY = os.environ.get('ECOWITT_API_KEY', 'dummy')
+ECOWITT_APPLICATION_KEY = os.environ.get('ECOWITT_APPLICATION_KEY', '')
+ECOWITT_API_KEY = os.environ.get('ECOWITT_API_KEY', '')
+ECOWITT_DEVICE_ID = os.environ.get('ECOWITT_DEVICE_ID', '')
+ECOWITT_MAC = os.environ.get('ECOWITT_MAC', '')
 TBASE_C = float(os.environ.get('TBASE_C', '5.0'))
 H_BUD = float(os.environ.get('H_BUD', '80.0'))
 H_BLOOM = float(os.environ.get('H_BLOOM', '180.0'))
 CHILL_TARGET_DAYS = float(os.environ.get('CHILL_TARGET_DAYS', '100.0'))
 
 
+def _to_celsius(value, unit=None):
+    """문자/숫자 값을 섭씨로 변환(단위가 ºF면 변환)"""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+    if unit and 'f' in str(unit).lower():
+        return (v - 32) * 5.0 / 9.0
+    return v
+
+
+def _read_temp(data, direct_key, nested_key):
+    """평탄 키/중첩 키 둘 다 지원해서 온도 추출"""
+    if direct_key in data:
+        return _to_celsius(data.get(direct_key))
+
+    node = data.get(nested_key, {})
+    if isinstance(node, dict):
+        temp_node = node.get('temperature', {})
+        if isinstance(temp_node, dict):
+            return _to_celsius(temp_node.get('value'), temp_node.get('unit'))
+
+    dotted = data.get(f'{nested_key}.temperature')
+    if dotted is not None:
+        return _to_celsius(dotted)
+
+    return 0.0
+
+
 def get_ecowitt_recent():
     """실시간 데이터 가져오기"""
     try:
+        if not (ECOWITT_APPLICATION_KEY and ECOWITT_API_KEY):
+            raise ValueError('ECOWITT 환경변수(application/api) 누락')
+
+        device_selector = ''
+        if ECOWITT_DEVICE_ID:
+            device_selector = f'&device_id={ECOWITT_DEVICE_ID}'
+        elif ECOWITT_MAC:
+            # 기존 워크플로우 호환: MAC 기반 호출도 허용
+            device_selector = f'&mac={ECOWITT_MAC}'
+        else:
+            raise ValueError('ECOWITT 환경변수(device_id 또는 mac) 누락')
+
         url = (
-            "https://api.ecowitt.net/api/v3/device/current"
-            f"?application_key={ECOWITT_API_KEY}"
-            f"&api_key={ECOWITT_API_KEY}"
-            "&device_id=YOUR_DEVICE_ID&time_zone=KST"
+            'https://api.ecowitt.net/api/v3/device/current'
+            f'?application_key={ECOWITT_APPLICATION_KEY}'
+            f'&api_key={ECOWITT_API_KEY}'
+            f'{device_selector}&time_zone=KST'
         )
         resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
         data = resp.json()['data']['device'][0]['data']
 
-        # 기존/신규 키 모두 지원(페이지 호환 목적)
-        outdoor = float(data.get('outdoor', data.get('outdoor_c', 0)))
-        t2 = float(data.get('2동_c', data.get('temp_and_humidity_ch1.temperature', 0)))
-        t3 = float(data.get('3동_c', data.get('temp_and_humidity_ch2.temperature', 0)))
+        outdoor = _read_temp(data, 'outdoor_c', 'outdoor')
+        t2 = _read_temp(data, '2동_c', 'temp_and_humidity_ch1')
+        t3 = _read_temp(data, '3동_c', 'temp_and_humidity_ch2')
 
         return {
             'timestamp': datetime.now().isoformat(),
@@ -38,8 +83,15 @@ def get_ecowitt_recent():
             '3동_c': t3,
             '토양수분': float(data.get('soil_moisture', 0))
         }
-    except Exception:
-        return {'timestamp': datetime.now().isoformat(), 'error': 'API 연결 오류'}
+    except Exception as exc:
+        return {
+            'timestamp': datetime.now().isoformat(),
+            '외부온도': None,
+            '외부_c': None,
+            '2동_c': None,
+            '3동_c': None,
+            'error': f'API 연결 오류: {exc}'
+        }
 
 
 def load_or_create_daily():
