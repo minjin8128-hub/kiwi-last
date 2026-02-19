@@ -1,3 +1,4 @@
+from pathlib import Path
 import json
 from unittest.mock import patch, Mock
 
@@ -85,3 +86,10 @@ def test_get_ecowitt_recent_with_mac_selector():
     assert round(now['2동_c'], 2) == 10.0
     assert round(now['3동_c'], 2) == 7.22
     assert now['토양수분'] == 40.0
+
+
+def test_no_merge_conflict_markers():
+    text = Path('collector/collect.py').read_text(encoding='utf-8')
+    assert '<<<<<<<' not in text
+    assert '=======' not in text
+    assert '>>>>>>>' not in text
