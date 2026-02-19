@@ -24,6 +24,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Validate no merge conflict markers
+        run: |
+          if rg -n "^(<<<<<<<|=======|>>>>>>>)" collector index.html docs/index.html; then
+            echo "Merge conflict markers found. Resolve and commit clean files."
+            exit 1
+          fi
+
       - name: Run collector
         env:
           ECOWITT_API_KEY: ${{ secrets.ECOWITT_API_KEY }}
