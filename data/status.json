@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-02-25T23:17:38.503441",
-  "updated_utc": "2026-02-25 23:17:38",
+  "timestamp": "2026-02-26T05:13:19.740131",
+  "updated_utc": "2026-02-26 05:13:19",
   "now": {
-    "timestamp": "2026-02-25T23:17:38.499837",
+    "timestamp": "2026-02-26T05:13:19.735498",
     "error": "API 연결 오류: 'NoneType' object is not subscriptable"
   },
   "gdd": {
@@ -13,18 +13,18 @@
     "progress": "0%",
     "bud_remaining": 80.0,
     "bloom_remaining": 180.0,
-    "bud_date": "09/05",
-    "bloom_date": "05/03",
-    "pred_bud10_date": "09/05",
-    "pred_bloom50_date": "05/03",
+    "bud_date": "09/06",
+    "bloom_date": "05/04",
+    "pred_bud10_date": "09/06",
+    "pred_bloom50_date": "05/04",
     "basis": "2동 실시간 + 히스토리 보정"
   },
   "chill": {
-    "total_days": 9.0,
-    "cum": 9.0,
+    "total_days": 10.0,
+    "cum": 10.0,
     "target": 100.0,
-    "progress": "9%",
-    "pct": 9.0
+    "progress": "10%",
+    "pct": 10.0
   },
   "config": {
     "TBASE_C": 5.0,
