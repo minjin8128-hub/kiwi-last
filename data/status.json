@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-02-28T13:49:30.643584",
-  "updated_utc": "2026-02-28 13:49:30",
+  "timestamp": "2026-02-28T14:48:51.773248",
+  "updated_utc": "2026-02-28 14:48:51",
   "now": {
-    "timestamp": "2026-02-28T13:49:30.640512",
-    "error": "API 연결 오류: HTTPSConnectionPool(host='api.ecowitt.net', port=443): Read timed out. (read timeout=10)"
+    "timestamp": "2026-02-28T14:48:51.769315",
+    "error": "API 연결 오류: 'NoneType' object is not subscriptable"
   },
   "gdd": {
     "total": 0.0,
