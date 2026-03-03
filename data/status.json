@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-03-03T05:07:18.349777",
-  "updated_utc": "2026-03-03 05:07:18",
+  "timestamp": "2026-03-03T07:57:58.994457",
+  "updated_utc": "2026-03-03 07:57:58",
   "now": {
-    "timestamp": "2026-03-03T05:07:18.344724",
-    "error": "API 연결 오류: Expecting value: line 1 column 1 (char 0)"
+    "timestamp": "2026-03-03T07:57:58.990503",
+    "error": "API 연결 오류: 'NoneType' object is not subscriptable"
   },
   "gdd": {
     "total": 0.0,
