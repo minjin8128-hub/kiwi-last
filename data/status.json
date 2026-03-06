@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-06T11:44:09.666913",
-  "updated_utc": "2026-03-06 11:44:09",
+  "timestamp": "2026-03-06T14:06:48.664890",
+  "updated_utc": "2026-03-06 14:06:48",
   "now": {
-    "timestamp": "2026-03-06T11:44:09.663229",
+    "timestamp": "2026-03-06T14:06:48.660883",
     "error": "API 연결 오류: 'NoneType' object is not subscriptable"
   },
   "gdd": {
